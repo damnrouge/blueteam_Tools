@@ -8,5 +8,5 @@ CSV Output: Output the parsed log entries into a structured CSV file for easy an
 
 # Usage:
 ./convert_auth_to_csv.sh -i /path/to/auth.log -o /path/to/output.csv  
-**OR**
+**OR** 
 python3 convert_auth_to_csv.py -i /path/to/auth.log -o /path/to/output.csv
