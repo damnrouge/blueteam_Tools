@@ -7,6 +7,7 @@ Detailed Logging: Capture detailed information including timestamp, hostname, se
 CSV Output: Output the parsed log entries into a structured CSV file for easy analysis
 
 # Usage:
+### shell script
 ./convert_auth_to_csv.sh -i /path/to/auth.log -o /path/to/output.csv  
-**OR** 
+### python
 python3 convert_auth_to_csv.py -i /path/to/auth.log -o /path/to/output.csv
