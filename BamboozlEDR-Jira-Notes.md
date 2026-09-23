@@ -71,13 +71,54 @@ fake events here     competing / empty sessions
 
 ---
 
+## Installation Notes (Windows 11)
+
+### Prerequisites
+- Go 1.23+ (installed via Chocolatey: `choco install golang -y`)
+- Git
+
+### Build Steps
+```cmd
+cd %USERPROFILE%\Documents\ETW_research
+git clone https://github.com/olafhartong/BamboozlEDR.git
+cd BamboozlEDR
+```
+
+### Network / Proxy Issue Fix (Lab Environment)
+Default Go module proxy (`proxy.golang.org`) was blocked / connections forcibly closed on the research lab network.
+
+**Working solution:**
+```cmd
+go env -w GOPROXY=https://goproxy.io,direct
+go clean -modcache
+go build -o BamboozlEDR.exe .
+```
+
+Alternative (if needed):
+```cmd
+go env -w GOPROXY=direct
+go env -w GOSUMDB=off
+go clean -modcache
+go build -o BamboozlEDR.exe .
+```
+
+### Run
+```cmd
+.\BamboozlEDR.exe
+```
+(Run as Administrator for full features – especially Trace Session management)
+
+---
+
 ## Notes / Observations
 - Intentionally built as an interactive TUI to limit easy automation/abuse.
 - Threat names are XOR-obfuscated in the binary.
 - Most functionality works in user mode; only Trace Session management requires elevation.
 - Useful both for purple-team testing and understanding ETW resilience of modern EDRs.
+- On restricted lab networks, `goproxy.io` works better than the official `proxy.golang.org`.
 
 ---
 
 **Source**: Conversation research on olafhartong/BamboozlEDR (Black Hat USA 2025 related work)  
 **Date**: 2026-09-23
+**Updated**: 2026-09-23 – Added successful build notes + working GOPROXY fix
