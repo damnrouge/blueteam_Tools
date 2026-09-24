@@ -124,6 +124,8 @@ go build -o BamboozlEDR.exe .
 Found an excellent deep reverse-engineering write-up by DbgMan that dissects how CrowdStrike Falcon actually works under the hood (kernel callbacks, WFP, minifilter, user-mode service, and cloud content).  
 Article: https://0xdbgman.github.io/posts/inside-the-falcon-how-crowdstrike-catches-you/
 
+**Note**: The article confirms Falcon has an ETW consumer (`EtwConsumer@ETW` using `OpenTraceW` / `ProcessTrace`) for telemetry enrichment, but it does **not** enumerate the specific OS ETW providers or event IDs that CrowdStrike actually subscribes to / relies on.
+
 ### Point-by-point takeaways (especially ETW vs MDE / FalconForce)
 
 1. **ETW is dual-role here**  
@@ -145,4 +147,4 @@ Article: https://0xdbgman.github.io/posts/inside-the-falcon-how-crowdstrike-catc
 
 **Source**: Conversation research on olafhartong/BamboozlEDR (Black Hat USA 2025 related work) + DbgMan CrowdStrike teardown  
 **Date**: 2026-09-23  
-**Updated**: 2026-09-24 – Added DbgMan Falcon reverse-engineering notes (ETW consumption section + architecture comparison)
+**Updated**: 2026-09-24 – Added DbgMan Falcon reverse-engineering notes (ETW consumption section + architecture comparison). Clarified that specific ETW providers/events are not listed in the article.
