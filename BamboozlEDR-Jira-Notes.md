@@ -145,6 +145,61 @@ Article: https://0xdbgman.github.io/posts/inside-the-falcon-how-crowdstrike-catc
 
 ---
 
-**Source**: Conversation research on olafhartong/BamboozlEDR (Black Hat USA 2025 related work) + DbgMan CrowdStrike teardown  
+## Linking the Flow: FalconForce ETW Provider Spoofing → CrowdStrike Falcon
+
+The FalconForce technique originally demonstrated against MDE ("I'm in your logs now") has been successfully translated and confirmed working against CrowdStrike Falcon.
+
+**Source technique**: https://falconforce.nl/in-your-logs-now/  
+**Confirmed target**: CrowdStrike Falcon Sensor (`CSFalconService.exe`)
+
+### High-level Flow (Spoofing Falcon’s Own Provider)
+
+```
+1. Enumerate Falcon’s ETW provider
+   logman query providers | findstr /i "crowdstrike falcon"
+   → CrowdStrike-Falcon Sensor-CSFalconService {07A88C90-6EDA-4F36-0A2F-70D7006E5482}
+
+2. Locate & parse the manifest
+   C:\Program Files\CrowdStrike\CSFalconService.man
+   → Extract event IDs + templates (Event 5 = CS_NETWORK_CONTAINED_EVENT is the simplest – no template)
+
+3. Register as the provider (user-mode)
+   EtwEventRegister(GUID)  → non-zero handle (Falcon does not block external registration)
+
+4. Emit a manifest-correct event
+   EtwEventWrite(handle, EVENT_DESCRIPTOR for ID 5)
+
+5. Result
+   Spoofed event appears in:
+   Applications and Services Logs → Falcon Sensor-CSFalconService → Operational
+   Message: "Your computer is offline to keep it safe. Please contact IT for more information."
+   Indistinguishable from a real Falcon containment event in Event Viewer / SIEM.
+```
+
+### Key Findings from the Confirmed POC
+
+| Finding | Severity | Notes |
+|---------|----------|-------|
+| Falcon’s own provider accepts registration from any user-mode process | HIGH | No security descriptor / disallow list |
+| Spoofed events render with legitimate Falcon messages | HIGH | Persistent in .evtx, survive reboot |
+| No elevation required | HIGH | Standard user context is sufficient |
+| Falcon did not alert / block the spoofing process | MEDIUM | No console or FDR alert observed during test |
+| Technique cannot fake ProcessRollup2 or suppress real telemetry | — | This is spoofing, not blinding (separate from buffer-exhaustion) |
+
+### How This Links Back to Earlier Research
+
+- **DbgMan article** confirmed Falcon has an ETW *consumer* for enrichment, but did not list the providers Falcon *consumes*.
+- This work shows Falcon also *owns* a provider (`{07A88C90-...}`) that is unprotected and can be spoofed — a different surface from the OS ETW providers Falcon listens to.
+- Combined with BamboozlEDR-style flooding, the two techniques cover both sides of the ETW pipeline: generating noise into sessions Falcon may consume, and injecting false events into Falcon’s own Operational channel.
+
+### Detection Ideas (from the POC)
+
+- Alert on Falcon Operational log events whose ContextProcessId ≠ CSFalconService.exe PID.
+- Monitor for EtwProviderRegistered / process creation of tools that target the Falcon provider GUID.
+- Volumetric baseline on Falcon Sensor-CSFalconService/Operational (legitimate volume is very low).
+
+---
+
+**Source**: Conversation research on olafhartong/BamboozlEDR + DbgMan CrowdStrike teardown + FalconForce ETW provider spoofing (translated & confirmed against Falcon)  
 **Date**: 2026-09-23  
-**Updated**: 2026-09-24 – Added DbgMan Falcon reverse-engineering notes (ETW consumption section + architecture comparison). Clarified that specific ETW providers/events are not listed in the article.
+**Updated**: 2026-09-24 – Added confirmed FalconForce → CrowdStrike ETW provider spoofing flow, findings, and linkage to prior ETW research.
