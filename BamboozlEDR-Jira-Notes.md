@@ -119,6 +119,30 @@ go build -o BamboozlEDR.exe .
 
 ---
 
-**Source**: Conversation research on olafhartong/BamboozlEDR (Black Hat USA 2025 related work)  
-**Date**: 2026-09-23
-**Updated**: 2026-09-23 – Added successful build notes + working GOPROXY fix
+## CrowdStrike Falcon Internals (DbgMan Article)
+
+Found an excellent deep reverse-engineering write-up by DbgMan that dissects how CrowdStrike Falcon actually works under the hood (kernel callbacks, WFP, minifilter, user-mode service, and cloud content).  
+Article: https://0xdbgman.github.io/posts/inside-the-falcon-how-crowdstrike-catches-you/
+
+### Point-by-point takeaways (especially ETW vs MDE / FalconForce)
+
+1. **ETW is dual-role here**  
+   Kernel side (`csagent.sys`) produces ETW via `EtwRegister` / `EtwWriteTransfer` that feeds `CSFalconService.exe`. User-mode side has a dedicated `EtwConsumer@ETW` actor that actively consumes OS ETW providers (`OpenTraceW` + `ProcessTrace`) purely for telemetry enrichment. This is not the primary detection path.
+
+2. **Primary visibility is still the classic six kernel callbacks + WFP + minifilter**  
+   Process / Thread / Image / Object / Registry / File (FltRegisterFilter). ETW consumption is secondary enrichment, not the core “see everything” surface the way ETW-TI is for some MDE scenarios.
+
+3. **Cloud content delivery is the real brain**  
+   Detection rules live in channel files pulled by `ODSChannelFileActor` / `ChannelFileUpdated` over WinHTTP (NGDP). The driver is mostly a generic event collector + dispatcher; the actual matcher is a runtime-loaded object installed via `CS_SetDetectionEngine` (cmd 1021/2000). Same channel-file mechanism that caused the July 2024 issues.
+
+4. **Implication for testing vs MDE**  
+   Blinding techniques that target user-mode ETW providers or AMSI will hit Falcon’s enrichment layer and script visibility, but the process/thread/image/object callbacks and WFP callouts remain live. Falcon’s process-block path (negative NTSTATUS written back to `CreateInfo->CreationStatus`) is independent of the ETW consumer.
+
+5. **Practical takeaway for comparative testing**  
+   When moving from FalconForce/MDE work to CrowdStrike, the ETW surface is narrower and more of a supporting actor. The higher-value targets remain the six kernel notification sources, the two WFP engines, the minifilter altitude, and the channel-file update path.
+
+---
+
+**Source**: Conversation research on olafhartong/BamboozlEDR (Black Hat USA 2025 related work) + DbgMan CrowdStrike teardown  
+**Date**: 2026-09-23  
+**Updated**: 2026-09-24 – Added DbgMan Falcon reverse-engineering notes (ETW consumption section + architecture comparison)
