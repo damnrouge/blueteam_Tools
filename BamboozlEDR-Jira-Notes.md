@@ -119,6 +119,18 @@ go build -o BamboozlEDR.exe .
 
 ---
 
+## Idea – Alternative approach to CrowdStrike ETW research
+
+Instead of trying to figure out which OS ETW providers CrowdStrike listens to (still not clearly documented in public research), we can flip the approach:
+
+Just register as CrowdStrike’s own ETW provider and emit events through it.
+
+Those events then show up in Falcon’s own Operational log looking like they came from the sensor itself.
+
+This gives us a different (and currently working) way to inject false Falcon-looking activity without needing to reverse every provider Falcon consumes.
+
+---
+
 ## CrowdStrike Falcon Internals (DbgMan Article)
 
 Found an excellent deep reverse-engineering write-up by DbgMan that dissects how CrowdStrike Falcon actually works under the hood (kernel callbacks, WFP, minifilter, user-mode service, and cloud content).  
@@ -202,4 +214,4 @@ The FalconForce technique originally demonstrated against MDE ("I'm in your logs
 
 **Source**: Conversation research on olafhartong/BamboozlEDR + DbgMan CrowdStrike teardown + FalconForce ETW provider spoofing (translated & confirmed against Falcon)  
 **Date**: 2026-09-23  
-**Updated**: 2026-09-24 – Added confirmed FalconForce → CrowdStrike ETW provider spoofing flow, findings, and linkage to prior ETW research.
+**Updated**: 2026-09-24 – Added simplified Idea section + confirmed FalconForce → CrowdStrike ETW provider spoofing flow.
